@@ -18,7 +18,6 @@ use App\Http\Controllers\MoovController;
 // header('Access-Control-Allow-Methods','DELETE,GET,POST,OPTIONS,PUT');
 
 
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -36,4 +35,8 @@ Route::post('moovtransfer', [MoovController::class, 'moovTransfer']);
 Route::post('moovmobilestatus', [MoovController::class, 'moovGetMobileStatus']);
 Route::post('moovcashintransaction', [MoovController::class, 'moovCashInTransaction']);
 Route::post('moovairtimetransaction', [MoovController::class, 'moovAirTimeTransaction']);
+Route::post('moovpushwithpending', [MoovController::class, 'moovPushWithPending']);
+Route::post('moovgetbalance', [MoovController::class, 'moovGetBalance']);
+
+
  

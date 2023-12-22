@@ -177,7 +177,7 @@ class MoovController extends Controller
             <soapenv:Header/>
             <soapenv:Body>
                 <api:transferFlooz>
-                    <token>token</token>
+                    <token>84DPBHjpSS7QcV/grK+uZG1VusFkpzWgMzhebN+e0M8=</token>
                     <request>
                         <destination>phone_no</destination>
                         <amount>amount</amount>
@@ -253,7 +253,7 @@ class MoovController extends Controller
             <soapenv:Header/>
             <soapenv:Body>
                 <api:getMobileAccountStatus>
-                    <token>token</token>
+                    <token>84DPBHjpSS7QcV/grK+uZG1VusFkpzWgMzhebN+e0M8=</token>
                     <request>
                         <msisdn>phone_no</msisdn>
                     </request>
@@ -473,5 +473,160 @@ class MoovController extends Controller
         }
     }
 
-    
+    public function moovGetBalance(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            "phone_no" => "required",
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'message' => 'BAD REQUEST', "errors" => $validator->errors()], 400);
+        }
+
+
+        $url = "https://apimarchand.moov-africa.bj/com.tlc.merchant.api/getBalance";
+        $headers = array(
+            'Content-Type: application/xml'
+        );
+        $xml_data = '<?xml version="1.0" encoding="utf-16"?>
+        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:api="http://api.checktransaction.tlc.com/">
+            <soapenv:Header/>
+            <soapenv:Body>
+                <api:getBalance>
+                    <token>lBQPnQ7raTMkrIVTgYASmrL5gd+keN6dZMLJzV/siaY=</token>
+                    <request>
+                        <msisdn>phone_no</msisdn>
+                    </request>
+                </api:getBalance>
+            </soapenv:Body>
+        </soapenv:Envelope>';
+        $xml_data = str_replace(
+            ['<msisdn>phone_no</msisdn>'],
+            ['<msisdn>' . $request->phone_no . '</msisdn>'],
+            $xml_data
+        );
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data);
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+        try {
+            $response = curl_exec($ch);
+            if ($response === false) {
+                throw new Exception('Erreur cURL : ' . curl_error($ch));
+            }
+            $xml = new SimpleXMLElement($response);
+            $ns2 = $xml->children('http://schemas.xmlsoap.org/soap/envelope/')->Body->children('http://api.merchant.tlc.com/')->getBalanceResponse->return;
+            $balance = (string) $ns2->balance;
+            $message = (string) $ns2->message;
+            $status = (int) $ns2->status;
+            if ($status == "0" && isset($message) && $message == "SUCCESS") {
+                $data = [
+                    "balance" => $balance,
+                    "message" => $message,
+                    "status" => $status
+                ];
+                //PROCESS 
+                return response()->json(['status' => true, 'data' => $data]);
+            }
+            return response()->json(['status' => false, 'message' => "Something went wrong"]);
+        } catch (Exception $e) {
+            echo 'Erreur : ' . $e->getMessage();
+        } finally {
+            curl_close($ch);
+        }
+    }
+
+    public function moovPushWithPending(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            "phone_no" => "required",
+            "message" => "required",
+            "amount" => "required",
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'message' => 'BAD REQUEST', "errors" => $validator->errors()], 400);
+        }
+
+
+
+        $url = "https://apimarchand.moov-africa.bj/com.tlc.merchant.api/PushWithPending";
+        $headers = array(
+            'Content-Type: application/xml'
+        );
+        $fee = 0;
+        /** vtx
+         * <externaldata1>pi_NyM_1642619082990</externaldata1>
+         *<externaldata2>pi_NyM_1642619082990</externaldata2>
+         */
+        $xml_data = '<?xml version="1.0" encoding="utf-8"?>
+        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:api="http://api.merchant.tlc.com/">
+            <soapenv:Header/>
+            <soapenv:Body>
+                <api:PushWithPending>
+                    <token>84DPBHjpSS7QcV/grK+uZG1VusFkpzWgMzhebN+e0M8=</token>
+                    <msisdn>phone_no</msisdn>
+                    <message>message</message>
+                    <amount>amount</amount> 
+                    <fee>fee</fee>
+                </api:PushWithPending>
+            </soapenv:Body>
+        </soapenv:Envelope>';
+        $xml_data = str_replace(
+            ['<msisdn>phone_no</msisdn>', '<message>message</message>', '<amount>amount</amount>', '<fee>fee</fee>'],
+            ['<msisdn>' . $request->phone_no . '</msisdn>', '<message>' . $request->message . '</message>', '<amount>' . $request->amount . '</amount>', '<fee>' . $fee . '</fee>'],
+            $xml_data
+        );
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data);
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+        try {
+            $response = curl_exec($ch);
+            if ($response === false) {
+                throw new Exception('Erreur cURL : ' . curl_error($ch));
+            }
+            $xml = new SimpleXMLElement($response); 
+            $ns2 = $xml->children('http://schemas.xmlsoap.org/soap/envelope/')->Body->children('http://api.merchant.tlc.com/')->PushWithPendingResponse->result;
+            $description = (string) $ns2->description;
+            $referenceId = (string) $ns2->referenceid;
+            $status = (int) $ns2->status;
+            $transactionId = (string) $ns2->transid;
+
+
+            if ($status == "0" && isset($description) && $description == "SUCCESS") {
+                $data = [
+                    "description" => $description,
+                    "reference_id" => $referenceId,
+                    "status" => $status,
+                    "transaction_id" => $transactionId
+                ];
+                //PROCESS 
+                return response()->json(['status' => true, 'data' => $data]);
+            }
+            if ($status == "100" && isset($description) && $description == "IN PENDING STATE") {
+                $data = [
+                    "description" => $description,
+                    "reference_id" => $referenceId,
+                    "status" => $status,
+                    "transaction_id" => $transactionId
+                ];
+                // IN PENDING PROCESS
+                return response()->json(['status' => true, 'data' => $data]);
+            }
+            return response()->json(['status' => false, 'message' => "Something went wrong"]);
+        } catch (Exception $e) {
+            echo 'Erreur : ' . $e->getMessage();
+        } finally {
+            curl_close($ch);
+        }
+    }
 }
